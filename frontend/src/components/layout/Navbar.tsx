@@ -1,173 +1,125 @@
 import React from 'react';
-import { useAppState } from '../../services/stateContext';
-import {
-  Sparkles,
-  UserCheck,
-  ShieldAlert,
-  Compass,
-  GitBranch,
-  Layers,
-  Zap,
-  Map,
-  Bot,
-  BarChart3,
-  Settings,
-  ChevronDown,
-  Activity,
-  Play
-} from 'lucide-react';
+import { Link, useNavigate, useLocation } from '../../services/router';
+import { useAuth } from '../../services/authContext';
+import { Sparkles, LogOut, User as UserIcon, ShieldCheck, GraduationCap, Briefcase, UserCheck, LayoutDashboard } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const {
-    currentUser,
-    setCurrentUser,
-    demoUsers,
-    activeTab,
-    setActiveTab,
-    startGuidedDemo,
-    systemStatus,
-    setIsResponsibleModalOpen
-  } = useAppState();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const isHR = currentUser?.user_type === 'hr_admin';
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: Compass },
-    { id: 'profile', label: 'My Talent Profile', icon: UserCheck },
-    { id: 'graph', label: 'Skills Graph', icon: GitBranch },
-    { id: 'matching', label: 'Role Matches', icon: Sparkles },
-    { id: 'gaps', label: 'Skill Gaps', icon: Layers },
-    { id: 'whatif', label: 'What-If Simulator', icon: Zap },
-    { id: 'roadmap', label: 'Career Roadmap', icon: Map },
-    { id: 'assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'hr', label: 'HR Intelligence', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'student':
+        return { label: 'Student / Graduate', icon: GraduationCap, color: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' };
+      case 'job_seeker':
+        return { label: 'Job Seeker', icon: Briefcase, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' };
+      case 'employee':
+        return { label: 'Internal Employee', icon: UserCheck, color: 'bg-purple-500/10 border-purple-500/30 text-purple-400' };
+      case 'hr':
+        return { label: 'HR Recruiter', icon: ShieldCheck, color: 'bg-amber-500/10 border-amber-500/30 text-amber-400' };
+      default:
+        return { label: 'User', icon: UserIcon, color: 'bg-slate-800 text-slate-300' };
+    }
+  };
+
+  const getRoleDashboardPath = (role: string) => {
+    switch (role) {
+      case 'student':
+        return '/student/dashboard';
+      case 'job_seeker':
+        return '/job-seeker/dashboard';
+      case 'employee':
+        return '/employee/dashboard';
+      case 'hr':
+        return '/hr/dashboard';
+      default:
+        return '/login';
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+    <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
-          
-          {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('home')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 font-bold text-xl">
-              TL
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                  TALENT<span className="text-emerald-400">LENS</span>
-                </span>
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md">
-                  AI
-                </span>
+        <div className="flex items-center justify-between h-16">
+          {/* Brand Logo */}
+          <Link to={user ? getRoleDashboardPath(user.role) : '/login'} className="flex items-center space-x-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 p-0.5 shadow-lg group-hover:scale-105 transition-transform">
+              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-cyan-400" />
               </div>
-              <p className="text-[10px] text-slate-400 hidden sm:block">Talent Discovery & Career Intelligence</p>
             </div>
-          </div>
+            <div className="flex flex-col">
+              <span className="font-black text-lg tracking-wider text-white bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
+                TALENTLENS
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium tracking-widest -mt-1">
+                TALENT INTELLIGENCE PLATFORM
+              </span>
+            </div>
+          </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              // Dim HR tab for non-HR or highlight
-              const isHighlight = item.id === 'whatif' || item.id === 'matching';
+          {/* Right User State */}
+          <div className="flex items-center space-x-4">
+            {user ? (
+              <>
+                {/* Active Role Badge */}
+                {(() => {
+                  const badge = getRoleBadge(user.role);
+                  const Icon = badge.icon;
+                  return (
+                    <div className={`hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full border text-xs font-bold ${badge.color}`}>
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{badge.label}</span>
+                    </div>
+                  );
+                })()}
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-500/10'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                {/* Dashboard Link */}
+                <Link
+                  to={getRoleDashboardPath(user.role)}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    location.pathname.includes('/dashboard')
+                      ? 'bg-slate-800 text-cyan-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Dashboard</span>
+                </Link>
 
-          {/* Right Action Bar */}
-          <div className="flex items-center gap-3">
-            
-            {/* 1-Click Guided Demo Button */}
-            <button
-              onClick={startGuidedDemo}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold text-xs shadow-md shadow-emerald-500/20 transition-all transform active:scale-95"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>3-Min Demo</span>
-            </button>
+                {/* Profile info & Logout */}
+                <div className="flex items-center space-x-3 pl-3 border-l border-slate-800">
+                  <div className="hidden lg:block text-right">
+                    <div className="text-xs font-bold text-white leading-tight">{user.full_name || user.name}</div>
+                    <div className="text-[10px] text-slate-400">{user.email}</div>
+                  </div>
 
-            {/* AI Status Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>{systemStatus.ai_mode}</span>
-            </div>
-
-            {/* Responsible AI Button */}
-            <button
-              onClick={() => setIsResponsibleModalOpen(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-900/80 transition-colors border border-transparent hover:border-slate-800"
-              title="Responsible AI & Transparency"
-            >
-              <ShieldAlert className="w-4 h-4" />
-            </button>
-
-            {/* Persona Switcher Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all">
-                <img
-                  src={currentUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
-                  alt={currentUser?.name}
-                  className="w-7 h-7 rounded-full object-cover border border-emerald-500/40"
-                />
-                <div className="text-left hidden md:block">
-                  <div className="text-xs font-semibold text-slate-200 leading-tight">{currentUser?.name}</div>
-                  <div className="text-[10px] text-slate-400 leading-tight">{currentUser?.current_title || 'Role'}</div>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform group-hover:rotate-180" />
-              </button>
-
-              {/* Dropdown Menu */}
-              <div className="absolute right-0 mt-2 w-64 py-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl backdrop-blur-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
-                  Switch Demo Persona
-                </div>
-                {demoUsers.slice(0, 5).map((user) => (
                   <button
-                    key={user.id}
-                    onClick={() => {
-                      setCurrentUser(user);
-                      if (user.user_type === 'hr_admin') {
-                        setActiveTab('hr');
-                      }
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-800/60 transition-colors ${
-                      currentUser?.id === user.id ? 'bg-emerald-500/10 text-emerald-300' : 'text-slate-300'
-                    }`}
+                    onClick={handleLogout}
+                    className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    title="Sign Out"
                   >
-                    <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-                    <div>
-                      <div className="text-xs font-semibold">{user.name}</div>
-                      <div className="text-[10px] text-slate-400">
-                        {user.current_title} • <span className="capitalize">{user.user_type.replace('_', ' ')}</span>
-                      </div>
-                    </div>
+                    <LogOut className="w-4 h-4" />
                   </button>
-                ))}
-              </div>
-            </div>
-
+                </div>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs hover:opacity-90 transition-opacity"
+              >
+                Sign In / Demo Login
+              </Link>
+            )}
           </div>
-
         </div>
       </div>
-    </header>
+    </nav>
   );
 };

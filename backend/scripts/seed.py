@@ -212,12 +212,12 @@ def seed_database():
 
     print("[+] Seeding Key Demo Personas...")
 
-    # PERSONA 1: Priya Sharma (Support Engineer -> Hidden Data Analyst)
+    # PERSONA 1: Priya Sharma (Job Seeker / Support Engineer -> Hidden Data Analyst)
     priya = User(
         name="Priya Sharma",
-        email="priya.sharma@talentlens.io",
+        email="jobseeker@talentlens.demo",
         avatar="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-        user_type="employee",
+        user_type="job_seeker",
         current_title="Support Engineer",
         department="Operations",
         experience_years=2.5,
@@ -282,9 +282,9 @@ def seed_database():
     # PERSONA 2: Arjun Kumar (Fresher / Student -> Machine Learning / Data)
     arjun = User(
         name="Arjun Kumar",
-        email="arjun.kumar@talentlens.io",
+        email="student@talentlens.demo",
         avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-        user_type="candidate",
+        user_type="student",
         current_title="Final-Year CS Student",
         department="Engineering",
         experience_years=0.5,
@@ -355,7 +355,7 @@ def seed_database():
     # PERSONA 3: Rahul Menon (Operations Executive -> Business Analyst)
     rahul = User(
         name="Rahul Menon",
-        email="rahul.menon@talentlens.io",
+        email="employee@talentlens.demo",
         avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
         user_type="employee",
         current_title="Operations Executive",
@@ -407,7 +407,7 @@ def seed_database():
     # PERSONA 4: Ananya HR (Workforce Recruiter / HR Lead)
     ananya = User(
         name="Ananya HR",
-        email="ananya.hr@talentlens.io",
+        email="hr@talentlens.demo",
         avatar="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
         user_type="hr_admin",
         current_title="Director of People & Talent Intelligence",

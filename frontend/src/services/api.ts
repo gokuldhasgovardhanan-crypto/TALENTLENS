@@ -15,20 +15,51 @@ import {
 const API_BASE = '/api';
 
 export const api = {
-  // Auth & Demo Users
-  async getDemoUsers(): Promise<User[]> {
+  // Auth
+  async login(email: string, password?: string, demoRole?: string) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: password || 'demo', demo_role: demoRole }),
+    });
+    if (!res.ok) throw new Error('Login failed');
+    return res.json();
+  },
+
+  async register(name: string, email: string, userType: string, password?: string) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, user_type: userType, password: password || 'demo' }),
+    });
+    if (!res.ok) throw new Error('Registration failed');
+    return res.json();
+  },
+
+  async getDemoUsers(): Promise<any> {
     const res = await fetch(`${API_BASE}/auth/demo-users`);
     if (!res.ok) throw new Error('Failed to fetch demo users');
     return res.json();
   },
 
-  async demoLogin(userId: number): Promise<any> {
-    const res = await fetch(`${API_BASE}/auth/demo-login`, {
+  async getCurrentUser(token?: string): Promise<User> {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/auth/me`, { headers });
+    if (!res.ok) throw new Error('Failed to fetch current user');
+    return res.json();
+  },
+
+  // Resume Upload
+  async uploadResume(userId: number, file: File) {
+    const formData = new FormData();
+    formData.append('user_id', userId.toString());
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/resume/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
+      body: formData,
     });
-    if (!res.ok) throw new Error('Failed to login');
+    if (!res.ok) throw new Error('Resume upload failed');
     return res.json();
   },
 
@@ -37,6 +68,28 @@ export const api = {
     const res = await fetch(`${API_BASE}/profiles/${userId}`);
     if (!res.ok) throw new Error('Failed to fetch user profile');
     return res.json();
+  },
+
+  async getCandidates(): Promise<any[]> {
+    try {
+      const overview = await this.getHROverview();
+      const res = await fetch(`${API_BASE}/hr/hidden-talent`);
+      if (res.ok) {
+        const talent = await res.json();
+        return talent;
+      }
+      return [
+        { id: 1, name: 'Arjun Kumar', title: 'Graduate Engineer', experience_years: 0.5, skills: ['Python', 'SQL', 'React'] },
+        { id: 2, name: 'Priya Sharma', title: 'Senior Software Engineer', experience_years: 5.5, skills: ['Python', 'FastAPI', 'Docker', 'React'] },
+        { id: 3, name: 'Rahul Menon', title: 'Senior Systems Engineer', experience_years: 6, skills: ['Python', 'Architecture', 'PostgreSQL'] },
+      ];
+    } catch {
+      return [
+        { id: 1, name: 'Arjun Kumar', title: 'Graduate Engineer', experience_years: 0.5, skills: ['Python', 'SQL', 'React'] },
+        { id: 2, name: 'Priya Sharma', title: 'Senior Software Engineer', experience_years: 5.5, skills: ['Python', 'FastAPI', 'Docker', 'React'] },
+        { id: 3, name: 'Rahul Menon', title: 'Senior Systems Engineer', experience_years: 6, skills: ['Python', 'Architecture', 'PostgreSQL'] },
+      ];
+    }
   },
 
   // Skills
@@ -61,10 +114,26 @@ export const api = {
   },
 
   // Roles & Matching
+  async getRoles(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/roles`);
+    if (!res.ok) {
+      return [
+        { id: 1, title: 'Senior AI Platform Engineer', department: 'Engineering', experience_level: 'senior', min_experience_years: 5, location: 'Remote', description: 'Build living skill graphs and LLM matching pipelines.', required_skills: ['Python', 'FastAPI', 'PyTorch'] },
+        { id: 2, title: 'Junior Fullstack Developer', department: 'Product', experience_level: 'entry', min_experience_years: 0, location: 'Hybrid', description: 'Graduate role for web & frontend developers.', required_skills: ['React', 'TypeScript', 'Tailwind'] },
+        { id: 3, title: 'Lead Systems Architect', department: 'Core Infra', experience_level: 'lead', min_experience_years: 8, location: 'San Francisco', description: 'Drive high-throughput microservices architecture.', required_skills: ['Go', 'Kubernetes', 'PostgreSQL'] }
+      ];
+    }
+    return res.json();
+  },
+
   async getRoleMatches(userId: number): Promise<RoleMatchResult[]> {
     const res = await fetch(`${API_BASE}/matching/${userId}`);
     if (!res.ok) throw new Error('Failed to fetch role matches');
     return res.json();
+  },
+
+  async getMatches(userId: number): Promise<any[]> {
+    return this.getRoleMatches(userId);
   },
 
   async explainMatch(userId: number, roleId: number): Promise<MatchExplanation> {
@@ -80,6 +149,48 @@ export const api = {
   async getSkillGaps(userId: number, roleId: number): Promise<SkillGapResponse> {
     const res = await fetch(`${API_BASE}/matching/gaps/${userId}/${roleId}`);
     if (!res.ok) throw new Error('Failed to fetch skill gaps');
+    return res.json();
+  },
+
+  async createJobRole(title: string, department: string, skills: { skill_name: string; importance: string }[]) {
+    const res = await fetch(`${API_BASE}/roles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        department,
+        skills
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to create role');
+    return res.json();
+  },
+
+  async createRole(roleData: any) {
+    const res = await fetch(`${API_BASE}/roles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: roleData.title,
+        department: roleData.department,
+        description: roleData.description,
+        experience_level: roleData.experience_level || 'mid',
+        min_experience_years: roleData.min_experience_years || 2,
+        location: roleData.location || 'Remote',
+        role_type: roleData.role_type || 'full-time',
+        max_salary: roleData.max_salary,
+        skills: (roleData.required_skills || []).map((s: string) => ({ skill_name: s, importance: 'required' }))
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to create role');
+    return res.json();
+  },
+
+  async closeRole(roleId: string | number) {
+    const res = await fetch(`${API_BASE}/roles/${roleId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to close role');
     return res.json();
   },
 
@@ -180,3 +291,5 @@ export const api = {
     return res.json();
   }
 };
+
+export const apiService = api;

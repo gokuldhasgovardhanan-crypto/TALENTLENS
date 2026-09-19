@@ -1,16 +1,20 @@
+export type UserRole = 'student' | 'job_seeker' | 'employee' | 'hr';
+
 export interface User {
   id: number;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string;
+  role: UserRole;
   avatar?: string;
-  user_type: 'candidate' | 'job_seeker' | 'employee' | 'hr_admin';
-  current_title: string;
-  department: string;
-  experience_years: number;
-  career_stage: string;
-  bio: string;
-  completeness_pct: number;
-  location: string;
+  user_type?: 'candidate' | 'job_seeker' | 'employee' | 'hr_admin';
+  current_title?: string;
+  department?: string;
+  experience_years?: number;
+  career_stage?: string;
+  bio?: string;
+  completeness_pct?: number;
+  location?: string;
   target_role_id?: number;
   target_role_title?: string;
 }

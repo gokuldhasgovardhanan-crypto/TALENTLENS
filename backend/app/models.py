@@ -9,8 +9,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), default="demo_hash")
     avatar = Column(String(255), nullable=True)
-    user_type = Column(String(50), default="job_seeker") # candidate/student, job_seeker, employee, hr_admin
+    user_type = Column(String(50), default="job_seeker") # candidate (student), job_seeker, employee, hr_admin
     current_title = Column(String(100), default="")
     department = Column(String(100), default="Engineering")
     experience_years = Column(Float, default=0.0)
@@ -36,8 +37,8 @@ class Skill(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, index=True, nullable=False)
     canonical_name = Column(String(100), index=True, nullable=False)
-    category = Column(String(50), index=True, default="Technical") # Technical, Data & Analytics, Engineering, Soft Skills, Leadership, Operations
-    cluster = Column(String(50), default="General") # e.g. Data Science, Web Dev, Cloud, Business Intelligence
+    category = Column(String(50), index=True, default="Technical")
+    cluster = Column(String(50), default="General")
     description = Column(Text, default="")
 
 
@@ -55,7 +56,7 @@ class ProfileSkill(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False, index=True)
-    proficiency = Column(String(30), default="Intermediate") # Beginner, Intermediate, Advanced, Expert
+    proficiency = Column(String(30), default="Intermediate")
     confidence_pct = Column(Integer, default=85)
     is_inferred = Column(Boolean, default=False)
     verification_status = Column(String(30), default="verified") # verified, inferred, confirmed, rejected
@@ -74,7 +75,7 @@ class SkillEvidence(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     profile_skill_id = Column(Integer, ForeignKey("profile_skills.id"), nullable=False, index=True)
-    source_type = Column(String(50), default="project") # project, certification, ticket_resolution, course, work_history
+    source_type = Column(String(50), default="project")
     title = Column(String(150), nullable=False)
     description = Column(Text, nullable=False)
     url = Column(String(255), default="")
@@ -91,13 +92,13 @@ class JobRole(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(100), unique=True, index=True, nullable=False)
     department = Column(String(100), index=True, default="Engineering")
-    level = Column(String(50), default="Mid-Level") # Entry, Mid-Level, Senior, Lead
+    level = Column(String(50), default="Mid-Level")
     description = Column(Text, default="")
     min_experience_years = Column(Float, default=2.0)
     salary_range = Column(String(50), default="$80,000 - $110,000")
     open_positions = Column(Integer, default=1)
     location = Column(String(100), default="Bangalore / Remote")
-    work_mode = Column(String(30), default="Hybrid") # Remote, Hybrid, Onsite
+    work_mode = Column(String(30), default="Hybrid")
 
     # Relationships
     required_skills = relationship("RoleSkill", back_populates="role", cascade="all, delete-orphan")
@@ -109,7 +110,7 @@ class RoleSkill(Base):
     id = Column(Integer, primary_key=True, index=True)
     role_id = Column(Integer, ForeignKey("job_roles.id"), nullable=False, index=True)
     skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False, index=True)
-    importance = Column(String(30), default="required") # required, preferred, nice_to_have
+    importance = Column(String(30), default="required")
     min_proficiency = Column(String(30), default="Intermediate")
     weight = Column(Float, default=1.0)
 
@@ -140,10 +141,10 @@ class LearningResource(Base):
     title = Column(String(150), nullable=False)
     skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False, index=True)
     provider = Column(String(100), default="Internal Academy")
-    resource_type = Column(String(50), default="course") # course, certification, project, mentorship, internal_gig, practice
-    difficulty = Column(String(30), default="Intermediate") # Beginner, Intermediate, Advanced
+    resource_type = Column(String(50), default="course")
+    difficulty = Column(String(30), default="Intermediate")
     duration_hours = Column(Integer, default=10)
-    estimated_impact_pct = Column(Integer, default=15) # score boost estimation
+    estimated_impact_pct = Column(Integer, default=15)
     url = Column(String(255), default="")
     description = Column(Text, default="")
 
@@ -160,7 +161,7 @@ class CareerRoadmap(Base):
     target_compatibility_pct = Column(Integer, default=90)
     title = Column(String(150), nullable=False)
     summary = Column(Text, default="")
-    milestones_json = Column(Text, default="[]") # Structured JSON milestones
+    milestones_json = Column(Text, default="[]")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="roadmaps")
@@ -172,11 +173,11 @@ class RecommendationFeedback(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    recommendation_type = Column(String(50), default="role") # role, skill, roadmap
+    recommendation_type = Column(String(50), default="role")
     item_id = Column(Integer, default=0)
     item_title = Column(String(100), default="")
     is_positive = Column(Boolean, default=True)
-    feedback_reason = Column(String(100), default="") # Wrong skill, Wrong role, Experience mismatch, Not interested, Already have skill
+    feedback_reason = Column(String(100), default="")
     comment = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 

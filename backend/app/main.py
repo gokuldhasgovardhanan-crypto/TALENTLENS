@@ -11,7 +11,7 @@ from . import models
 Base.metadata.create_all(bind=engine)
 
 # Import routers
-from .api import auth, profiles, skills, roles, matching, simulation, roadmap, assistant, hr, feedback
+from .api import auth, profiles, skills, roles, matching, simulation, roadmap, assistant, hr, feedback, resume
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -39,6 +39,7 @@ app.include_router(roadmap.router, prefix=settings.API_V1_STR)
 app.include_router(assistant.router, prefix=settings.API_V1_STR)
 app.include_router(hr.router, prefix=settings.API_V1_STR)
 app.include_router(feedback.router, prefix=settings.API_V1_STR)
+app.include_router(resume.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

@@ -1,34 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GraphData, GraphNode, GraphLink } from '../../types';
-import { Sparkles, Layers, Briefcase, FileText, UserCheck, Info } from 'lucide-react';
+import { GraphData, GraphNode } from '../../types';
+import { api } from '../../services/api';
+import { Sparkles, Info } from 'lucide-react';
 
 interface InteractiveSkillGraphProps {
-  data: GraphData | null;
+  data?: GraphData | null;
   onSelectNode?: (node: GraphNode) => void;
 }
 
-export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ data }) => {
+export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ data: propData }) => {
+  const [graphData, setGraphData] = useState<GraphData | null>(propData || null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (data?.nodes && data.nodes.length > 0 && !selectedNode) {
-      // Default selection to center person or first inferred skill
-      const inferred = data.nodes.find((n) => n.type === 'inferred_skill') || data.nodes[0];
+    if (propData) {
+      setGraphData(propData);
+    } else {
+      const fetchGraph = async () => {
+        try {
+          const res = await api.getSkillGraph(1);
+          setGraphData(res);
+        } catch {
+          // Fallback demo graph
+          setGraphData({
+            nodes: [
+              { id: '1', name: 'Arjun Kumar', type: 'person', category: 'Candidate', size: 24, title: 'Candidate Profile' },
+              { id: '2', name: 'Python', type: 'core_skill', category: 'Backend', size: 18, proficiency: 'Advanced', confidence_pct: 94 },
+              { id: '3', name: 'FastAPI', type: 'core_skill', category: 'API', size: 16, proficiency: 'Intermediate', confidence_pct: 88 },
+              { id: '4', name: 'System Architecture', type: 'inferred_skill', category: 'Architecture', size: 16, proficiency: 'Intermediate', confidence_pct: 82, is_inferred: true },
+              { id: '5', name: 'Senior AI Engineer', type: 'role', category: 'Target Role', size: 22, description: 'Target Role Fit 92%' },
+            ],
+            links: [
+              { source: '1', target: '2', label: 'possesses' },
+              { source: '1', target: '3', label: 'possesses' },
+              { source: '2', target: '4', label: 'infers' },
+              { source: '4', target: '5', label: 'matches' },
+            ]
+          });
+        }
+      };
+      fetchGraph();
+    }
+  }, [propData]);
+
+  useEffect(() => {
+    if (graphData?.nodes && graphData.nodes.length > 0 && !selectedNode) {
+      const inferred = graphData.nodes.find((n) => n.type === 'inferred_skill') || graphData.nodes[0];
       setSelectedNode(inferred);
     }
-  }, [data]);
+  }, [graphData]);
 
-  if (!data || !data.nodes || data.nodes.length === 0) {
+  if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
     return (
-      <div className="glass-panel rounded-2xl p-12 text-center text-slate-400">
+      <div className="rounded-2xl p-12 text-center text-slate-400 bg-slate-900 border border-slate-800">
         Loading Living Skills Graph...
       </div>
     );
   }
 
-  // Node color mapping
   const getNodeColor = (type: string, isInferred?: boolean) => {
     switch (type) {
       case 'person':
@@ -46,13 +76,12 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
     }
   };
 
-  // Fixed visual coordinate layout algorithm for aesthetic display
   const width = 850;
   const height = 500;
   const centerX = width / 2;
   const centerY = height / 2;
 
-  const positionedNodes = data.nodes.map((node, index) => {
+  const positionedNodes = graphData.nodes.map((node, index) => {
     let x = centerX;
     let y = centerY;
 
@@ -60,23 +89,20 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
       x = centerX;
       y = centerY;
     } else if (node.type === 'project') {
-      // Left side orbit
-      const projNodes = data.nodes.filter((n) => n.type === 'project');
+      const projNodes = graphData.nodes.filter((n) => n.type === 'project');
       const idx = projNodes.findIndex((n) => n.id === node.id);
       const angle = Math.PI * 0.75 + (idx * 0.6) - ((projNodes.length - 1) * 0.3);
       x = centerX + Math.cos(angle) * 260;
       y = centerY + Math.sin(angle) * 160;
     } else if (node.type === 'core_skill' || node.type === 'inferred_skill') {
-      // Middle orbit
-      const skillNodes = data.nodes.filter((n) => n.type === 'core_skill' || n.type === 'inferred_skill');
+      const skillNodes = graphData.nodes.filter((n) => n.type === 'core_skill' || n.type === 'inferred_skill');
       const idx = skillNodes.findIndex((n) => n.id === node.id);
-      const angle = (idx / skillNodes.length) * (Math.PI * 2) - Math.PI / 2;
+      const angle = (idx / Math.max(1, skillNodes.length)) * (Math.PI * 2) - Math.PI / 2;
       const radius = node.type === 'inferred_skill' ? 170 : 140;
       x = centerX + Math.cos(angle) * radius;
       y = centerY + Math.sin(angle) * (radius * 0.85);
     } else if (node.type === 'role') {
-      // Right side orbit
-      const roleNodes = data.nodes.filter((n) => n.type === 'role');
+      const roleNodes = graphData.nodes.filter((n) => n.type === 'role');
       const idx = roleNodes.findIndex((n) => n.id === node.id);
       const angle = -Math.PI * 0.25 + (idx * 0.5) - ((roleNodes.length - 1) * 0.25);
       x = centerX + Math.cos(angle) * 280;
@@ -89,7 +115,7 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
   const nodeMap = new Map(positionedNodes.map((n) => [n.id, n]));
 
   return (
-    <div className="glass-panel rounded-2xl p-6 border border-slate-800 relative overflow-hidden">
+    <div className="rounded-2xl p-6 border border-slate-800 bg-slate-900/60 relative overflow-hidden">
       
       {/* Graph Header & Legend */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -101,7 +127,7 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
             </span>
           </div>
           <p className="text-xs text-slate-400">
-            Multi-entity network mapping Projects $\to$ Core & Hidden Skills $\to$ Target Role Pathways
+            Multi-entity network mapping Projects → Core & Hidden Skills → Target Role Pathways
           </p>
         </div>
 
@@ -143,7 +169,7 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
             </defs>
 
             {/* Links */}
-            {data.links.map((link, idx) => {
+            {graphData.links.map((link, idx) => {
               const src = nodeMap.get(link.source);
               const tgt = nodeMap.get(link.target);
               if (!src || !tgt) return null;
@@ -170,7 +196,6 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
             {/* Nodes */}
             {positionedNodes.map((node) => {
               const isSelected = selectedNode?.id === node.id;
-              const isHovered = hoveredNode?.id === node.id;
               const color = getNodeColor(node.type, node.is_inferred);
 
               return (
@@ -236,7 +261,7 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
         </div>
 
         {/* Node Inspector Side Panel */}
-        <div className="glass-card rounded-xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div className="rounded-xl p-5 border border-slate-800 bg-slate-950/50 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-800/80">
               <Info className="w-4 h-4 text-emerald-400" />
@@ -270,7 +295,7 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
                     {selectedNode.is_inferred && (
                       <div className="pt-1 flex items-center gap-1 text-[11px] text-amber-400 font-semibold">
                         <Sparkles className="w-3 h-3" />
-                        <span>AI-Inferred from incident patterns</span>
+                        <span>AI-Inferred capability</span>
                       </div>
                     )}
                   </div>
@@ -281,28 +306,12 @@ export const InteractiveSkillGraph: React.FC<InteractiveSkillGraphProps> = ({ da
                     {selectedNode.description}
                   </p>
                 )}
-
-                {selectedNode.evidence && selectedNode.evidence.length > 0 && (
-                  <div className="space-y-1.5">
-                    <span className="text-[11px] font-semibold text-slate-400">Linked Evidence:</span>
-                    <ul className="text-xs text-slate-300 space-y-1 pl-3 list-disc">
-                      {selectedNode.evidence.map((ev, i) => (
-                        <li key={i}>{ev}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             ) : (
               <p className="text-xs text-slate-500 pt-6 text-center">
-                Click any node in the graph to inspect its capability lineage and evidence.
+                Click any node in the graph to inspect capability lineage.
               </p>
             )}
-          </div>
-
-          <div className="pt-4 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Living Sync</span>
-            <span className="text-emerald-400 font-medium">Real-time DB Graph</span>
           </div>
         </div>
 
