@@ -8,15 +8,15 @@ from ..models import User
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class LoginRequest(BaseModel):
-    email: str
+    email: Optional[str] = ""
     password: Optional[str] = "demo"
-    demo_role: Optional[str] = None # student, job_seeker, employee, hr_admin
+    demo_role: Optional[str] = None # student, job_seeker, employee, hr / hr_admin
 
 class RegisterRequest(BaseModel):
     name: str
     email: str
     password: str
-    user_type: str # student, job_seeker, employee, hr_admin
+    user_type: str # student, job_seeker, employee, hr / hr_admin
     current_title: Optional[str] = ""
     department: Optional[str] = "Engineering"
 
@@ -28,7 +28,7 @@ def get_demo_users(db: Session = Depends(get_db)):
         {"email": "student@talentlens.demo", "role": "student", "label": "Student (Arjun Kumar)", "user_id": 2},
         {"email": "jobseeker@talentlens.demo", "role": "job_seeker", "label": "Job Seeker (Priya Sharma)", "user_id": 1},
         {"email": "employee@talentlens.demo", "role": "employee", "label": "Employee (Rahul Menon)", "user_id": 3},
-        {"email": "hr@talentlens.demo", "role": "hr_admin", "label": "HR Recruiter (Ananya HR)", "user_id": 4},
+        {"email": "hr@talentlens.demo", "role": "hr", "label": "HR Recruiter (Ananya HR)", "user_id": 4},
     ]
     return {
         "users": users,
@@ -38,28 +38,40 @@ def get_demo_users(db: Session = Depends(get_db)):
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = None
-    if req.email:
+    role_map = {
+        "student": "student@talentlens.demo",
+        "job_seeker": "jobseeker@talentlens.demo",
+        "employee": "employee@talentlens.demo",
+        "hr": "hr@talentlens.demo",
+        "hr_admin": "hr@talentlens.demo"
+    }
+
+    if req.email and req.email.strip():
         user = db.query(User).filter(User.email == req.email.strip().lower()).first()
-    
+
     if not user and req.demo_role:
-        role_map = {
-            "student": "student@talentlens.demo",
-            "job_seeker": "jobseeker@talentlens.demo",
-            "employee": "employee@talentlens.demo",
-            "hr_admin": "hr@talentlens.demo"
-        }
-        target_email = role_map.get(req.demo_role, "jobseeker@talentlens.demo")
+        target_email = role_map.get(req.demo_role.lower(), "jobseeker@talentlens.demo")
         user = db.query(User).filter(User.email == target_email).first()
+
+    if not user:
+        # Check by user_type if email lookup missed
+        if req.demo_role:
+            target_type = "hr_admin" if req.demo_role in ["hr", "hr_admin"] else req.demo_role
+            user = db.query(User).filter(User.user_type == target_type).first()
 
     if not user:
         # Fallback to first user in database
         user = db.query(User).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User account not found")
+        raise HTTPException(status_code=404, detail="User account not found in system")
 
-    # Generate mock token with role info
-    access_token = f"tl_token_{user.id}_{user.user_type}"
+    # Map user_type to clean role string
+    user_role = user.user_type
+    if user_role == "hr_admin":
+        user_role = "hr"
+
+    access_token = f"tl_token_{user.id}_{user_role}"
 
     return {
         "access_token": access_token,
@@ -67,7 +79,9 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "name": user.name,
+            "full_name": user.name,
             "email": user.email,
+            "role": user_role,
             "user_type": user.user_type,
             "current_title": user.current_title,
             "department": user.department,
@@ -84,10 +98,14 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    user_type = req.user_type
+    if user_type == "hr":
+        user_type = "hr_admin"
+
     user = User(
         name=req.name,
         email=req.email.strip().lower(),
-        user_type=req.user_type,
+        user_type=user_type,
         current_title=req.current_title or ("Student" if req.user_type == "student" else "Professional"),
         department=req.department or "Engineering",
         password_hash="hashed_pass"
@@ -96,14 +114,20 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    access_token = f"tl_token_{user.id}_{user.user_type}"
+    user_role = user.user_type
+    if user_role == "hr_admin":
+        user_role = "hr"
+
+    access_token = f"tl_token_{user.id}_{user_role}"
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
             "id": user.id,
             "name": user.name,
+            "full_name": user.name,
             "email": user.email,
+            "role": user_role,
             "user_type": user.user_type,
             "current_title": user.current_title,
             "department": user.department,
@@ -129,10 +153,16 @@ def get_current_user_profile(authorization: Optional[str] = Header(None), db: Se
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    user_role = user.user_type
+    if user_role == "hr_admin":
+        user_role = "hr"
+
     return {
         "id": user.id,
         "name": user.name,
+        "full_name": user.name,
         "email": user.email,
+        "role": user_role,
         "user_type": user.user_type,
         "current_title": user.current_title,
         "department": user.department,
