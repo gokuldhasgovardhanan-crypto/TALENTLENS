@@ -1,6 +1,7 @@
 import React from 'react';
 import { Router, Routes, Route, Navigate } from './services/router';
 import { AuthProvider, useAuth } from './services/authContext';
+import { StateProvider } from './services/stateContext';
 import { Navbar } from './components/layout/Navbar';
 import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -31,60 +32,62 @@ const HomeRedirect: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+      <StateProvider>
+        <Router>
+          <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Student Routes */}
-              <Route
-                path="/student/*"
-                element={
-                  <RoleProtectedRoute allowedRoles={['student']}>
-                    <StudentDashboard />
-                  </RoleProtectedRoute>
-                }
-              />
+                {/* Student Routes */}
+                <Route
+                  path="/student/*"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['student']}>
+                      <StudentDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
 
-              {/* Job Seeker Routes */}
-              <Route
-                path="/job-seeker/*"
-                element={
-                  <RoleProtectedRoute allowedRoles={['job_seeker']}>
-                    <JobSeekerDashboard />
-                  </RoleProtectedRoute>
-                }
-              />
+                {/* Job Seeker Routes */}
+                <Route
+                  path="/job-seeker/*"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['job_seeker']}>
+                      <JobSeekerDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
 
-              {/* Employee Routes */}
-              <Route
-                path="/employee/*"
-                element={
-                  <RoleProtectedRoute allowedRoles={['employee']}>
-                    <EmployeeDashboard />
-                  </RoleProtectedRoute>
-                }
-              />
+                {/* Employee Routes */}
+                <Route
+                  path="/employee/*"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['employee']}>
+                      <EmployeeDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
 
-              {/* HR Routes */}
-              <Route
-                path="/hr/*"
-                element={
-                  <RoleProtectedRoute allowedRoles={['hr']}>
-                    <HRDashboard />
-                  </RoleProtectedRoute>
-                }
-              />
+                {/* HR Routes */}
+                <Route
+                  path="/hr/*"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['hr']}>
+                      <HRDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
 
-              {/* Root & Fallback */}
-              <Route path="/" element={<HomeRedirect />} />
-              <Route path="*" element={<HomeRedirect />} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
+                {/* Root & Fallback */}
+                <Route path="/" element={<HomeRedirect />} />
+                <Route path="*" element={<HomeRedirect />} />
+              </Routes>
+            </main>
+          </div>
+        </Router>
+      </StateProvider>
     </AuthProvider>
   );
 };
